@@ -82,20 +82,55 @@ function randomMove(movesArr = possibleMoves) {
 }
 
 function tryMove({ gameData, moveDir }) {
-  if (hitSelf({ gameData, moveDir })) return false // Do not run into self!
-  if (hitWall({ gameData, moveDir })) return false // Do not run into a wall!
+  const newHeadPos = updatedHeadCoords({ curHeadCoords: gameData.you.head, moveDir })
+
+  if (hitSelfOrWall({ gameData, newHeadPos })) return false // Do not run into self or wall!
+  if (trapSelf({ gameData, newHeadPos })) return false // Do not end up trapping self!
 
   // No collisions! We can move this direction!
   return true
 }
 
-function hitSelf({ gameData, moveDir }) {
-  const newHeadPos = updatedHeadCoords({ curHeadCoords: gameData.you.head, moveDir })
+function bodyOrWallInCoord({ coords, gameData }) {
   const bodyCoords = gameData.you.body
 
   console.log('bodyCoords: ', bodyCoords)
 
-  if(bodyCoords.some(coord => coord.x === newHeadPos.x && coord.y === newHeadPos.y)){
+  if(bodyCoords.some(coord => coord.x === coords.x && coord.y === coords.y)){
+    return true
+  }
+
+  if(hitWall({ gameData, newHeadPos: coords })) {
+    return true
+  }
+
+  return false
+}
+
+function surroundedBySelfOrWall({ newHeadPos, gameData }) {
+  if (
+    bodyOrWallInCoord({ coords: { x: newHeadPos.x, y: newHeadPos.y + 1 }, gameData }) && // check up
+    bodyOrWallInCoord({ coords: { x: newHeadPos.x, y: newHeadPos.y - 1 }, gameData }) && // check down
+    bodyOrWallInCoord({ coords: { x: newHeadPos.x - 1, y: newHeadPos.y }, gameData }) && // check left
+    bodyOrWallInCoord({ coords: { x: newHeadPos.x + 1, y: newHeadPos.y }, gameData }) // check right
+  ) {
+    return true
+  }
+
+  return false
+}
+
+function trapSelf({ gameData, newHeadPos }) {
+  if (surroundedBySelfOrWall({ newHeadPos, gameData })) {
+    console.log('** GONNA TRAP YERSELF, HUN! **\n')
+    return true
+  }
+
+  return false
+}
+
+function hitSelfOrWall({ gameData, newHeadPos }) {
+  if (bodyOrWallInCoord({ coords: newHeadPos, gameData })) {
     console.log('** GONNA HIT YERSELF, HUN! **\n')
     return true
   }
@@ -103,9 +138,7 @@ function hitSelf({ gameData, moveDir }) {
   return false
 }
 
-function hitWall({ gameData, moveDir }) {
-  const newHeadPos = updatedHeadCoords({ curHeadCoords: gameData.you.head, moveDir })
-
+function hitWall({ gameData, newHeadPos }) {
   if(newHeadPos.x < 0 || newHeadPos.y < 0) {
     console.log('** GONNA HIT A WALL, HUN! **\n')
     return true
