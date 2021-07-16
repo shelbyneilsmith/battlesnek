@@ -91,12 +91,20 @@ function tryMove({ moveDir, gameData }) {
   return true
 }
 
+function coordsInSet({ coords, set }) {
+  if(set.some(setCoords => setCoords.x === coords.x && setCoords.y === coords.y)){
+    return true
+  }
+
+  return false
+}
+
 function bodyOrWallInCoord({ coords, gameData }) {
   const bodyCoords = gameData.you.body
 
   console.log('bodyCoords: ', bodyCoords)
 
-  if(bodyCoords.some(bodyCoord => bodyCoord.x === coords.x && bodyCoord.y === coords.y)){
+  if(coordsInSet({ coords, set: bodyCoords })){
     return true
   }
 
@@ -131,6 +139,68 @@ function headingTowardsWallTrap({ moveDir, gameData }) {
   if (moveDir === bodyToWall) return true
 
   return false
+}
+
+function range(size, startAt = 0) {
+  return [...Array(size).keys()].map(i => i + startAt);
+}
+
+function buildLineOfSightCoords({ headPos, gameData }) {
+  const coords = {}
+
+  possibleMoves.forEach(dir => {
+    const coordsDir = []
+
+    const axis = ['up', 'down'].includes(dir) ? 'y' : 'x'
+    const boardDim = ['up', 'down'].includes(dir) ? 'height' : 'width'
+    const incrementer = ['up', 'right'].includes(dir) ? 'pos' : 'neg'
+
+    if (incrementer === 'pos') {
+      range(gameData.board[boardDim], headPos[axis]).forEach(num => {
+        const coords = { x: headPos.x, y: headPos.y }
+
+        coords[axis] = num
+
+        coordsDir.push(coords)
+      })
+    }
+
+    coords[dir] = coordsDir
+  })
+
+  return coords
+}
+
+function bodyInLinearSightByDirection({ dir, gameData }) {
+  const { lineOfSightCoords } = gameData
+      
+  lineOfSightCoords[dir].forEach(coords => {
+    if (coordsInSet({ coords, set: gameData.you.body })) return true
+  })
+
+  return false
+}
+
+function headingTowardsSelfTrap({ moveDir, newHeadPos, gameData }) {
+  const allWaysClear = true
+  let bodyPartInLineOfSight = 0
+
+  gameData.lineOfSightCoords = buildLineOfSightCoords({ headPos: newHeadPos, gameData })
+
+  console.log("LINE OF SIGHT?", gameData.lineOfSightCoords)
+
+  possibleMoves.forEach(dir => {
+    if (bodyInLinearSightByDirection({ dir: moveDir, gameData })) {
+      allWaysClear = false
+    } else {
+      bodyPartInLineOfSight++
+    }
+  })
+
+  if (allWaysClear) return false
+  if (bodyPartInLineOfSight < 3) return false
+
+  return true
 }
 
 function headNextToWall(gameData) {
@@ -170,8 +240,14 @@ function trapSelf({ newHeadPos, moveDir, gameData }) {
     return true
   }
 
-  // against about to head towards another wall that the body is against
+  // about to head towards a "wall trap"
   if (headingTowardsWallTrap({ moveDir, gameData })) {
+    console.log('** GONNA TRAP YERSELF, HUN! **\n')
+    return true
+  }
+
+  // about to head toward a trap within itself
+  if (headingTowardsSelfTrap({ moveDir, newHeadPos, gameData })) {
     console.log('** GONNA TRAP YERSELF, HUN! **\n')
     return true
   }
