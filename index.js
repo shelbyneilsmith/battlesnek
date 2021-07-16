@@ -84,7 +84,7 @@ function randomMove(movesArr = possibleMoves) {
 function tryMove({ moveDir, gameData }) {
   const newHeadPos = updatedHeadCoords({ curHeadCoords: gameData.you.head, moveDir })
 
-  if (hitSelfOrWall({ coords: newHeadPos, gameData })) return false // Do not run into self or wall!
+  if (hitSnekOrWall({ coords: newHeadPos, gameData })) return false // Do not run into self or wall!
   if (trapSelf({ newHeadPos, moveDir, gameData })) return false // Do not end up trapping self!
 
   // No collisions! We can move this direction!
@@ -100,11 +100,15 @@ function coordsInSet({ coords, set }) {
 }
 
 function bodyOrWallInCoord({ coords, gameData }) {
-  const bodyCoords = gameData.you.body
+  // const bodyCoords = gameData.you.body
+  const sneks = gameData.board.snakes
+  const allBodyCoords = []
+  
+  sneks.forEach((snek) => allBodyCoords.push(...snek.body))
 
-  console.log('bodyCoords: ', bodyCoords)
+  console.log('bodyCoords: ', allBodyCoords)
 
-  if(coordsInSet({ coords, set: bodyCoords })){
+  if(coordsInSet({ coords, set: allBodyCoords })){
     return true
   }
 
@@ -255,7 +259,7 @@ function trapSelf({ newHeadPos, moveDir, gameData }) {
   return false
 }
 
-function hitSelfOrWall({ coords, gameData }) {
+function hitSnekOrWall({ coords, gameData }) {
   if (bodyOrWallInCoord({ coords, gameData })) {
     console.log('** GONNA HIT YERSELF, HUN! **\n')
     return true
