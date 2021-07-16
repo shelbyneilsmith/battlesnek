@@ -83,6 +83,7 @@ function randomMove(movesArr = possibleMoves) {
 
 function tryMove({ gameData, moveDir }) {
   if (hitSelf({ gameData, moveDir })) return false // Do not run into self!
+  if (hitWall({ gameData, moveDir })) return false // Do not run into a wall!
 
   // No collisions! We can move this direction!
   return true
@@ -96,6 +97,22 @@ function hitSelf({ gameData, moveDir }) {
 
   if(bodyCoords.some(coord => coord.x === newHeadPos.x && coord.y === newHeadPos.y)){
     console.log('** GONNA HIT YERSELF, HUN! **\n')
+    return true
+  }
+
+  return false
+}
+
+function hitWall({ gameData, moveDir }) {
+  const newHeadPos = updatedHeadCoords({ curHeadCoords: gameData.you.head, moveDir })
+
+  if(newHeadPos.x < 0 || newHeadPos.y < 0) {
+    console.log('** GONNA HIT A WALL, HUN! **\n')
+    return true
+  }
+
+  if(newHeadPos.x === gameData.board.width || newHeadPos.y === gameData.board.height) {
+    console.log('** GONNA HIT A WALL, HUN! **\n')
     return true
   }
 
