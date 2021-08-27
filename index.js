@@ -102,7 +102,7 @@ function randomMove(movesArr = possibleMoves) {
 function tryMove({ moveDir, gameData }) {
   const newHeadPos = updatedHeadCoords({ curHeadCoords: gameData.you.head, moveDir })
 
-  if (snekHeadInCoord({ coords: newHeadPos, gameData })) return true; // If we're about to hit a snake's head, go for it!
+  if (eatSmallerSnek({ coords: newHeadPos, gameData })) return true; // If we're about to hit a smaller snake's head, go for it!
 
   if (hitSnekBodyOrWall({ coords: newHeadPos, gameData })) return false // Do not run into self or wall!
   if (trapSelf({ newHeadPos, moveDir, gameData })) return false // Do not end up trapping self!
@@ -120,8 +120,21 @@ function coordsInSet({ coords, set }) {
   return false
 }
 
+function eatSmallerSnek({ coords, gameData }) {
+  if (!snekHeadInCoord({ coords, gameData })) return false;
+
+  const myLength = gameData.you.body.length;
+  const enemy = gameData.board.snakes.filter((snek) => snek.head === coords || snek.body.includes(coords));
+
+  return myLength > enemy.length;
+}
+
+function hitLargerSnekHead({ coords, gameData }) {
+  !eatSmallerSnek({ coords, gameData });
+}
+
 function bodyOrWallInCoord({ coords, gameData }) {
-  // const bodyCoords = gameData.you.body
+  if (hitLargerSnekHead({ coords, gameData })) return true;
   if (snekBodyInCoord({ coords, gameData })) return true;
 
   if(hitWall({ coords, gameData })) {
