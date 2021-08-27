@@ -14,6 +14,7 @@ app.post('/end', handleEnd)
 app.listen(PORT, () => console.log(`Battlesnake Server listening at http://127.0.0.1:${PORT}`))
 
 const possibleMoves = ['up', 'down', 'left', 'right']
+let allBodyCoords, allSnekBodies, allSnekHeads;
 
 function handleIndex(request, response) {
   var battlesnakeInfo = {
@@ -28,6 +29,7 @@ function handleIndex(request, response) {
 
 function handleStart(request, response) {
   var gameData = request.body
+  allBodyCoords = [];
 
   console.log('START')
   response.status(200).send('ok')
@@ -37,13 +39,30 @@ function handleMove(request, response) {
   var gameData = request.body
 
   const thisMove = move(gameData)
-  
+  allBodyCoords = findAllSneks(gameData)['allSnekBodyCoords'];
+  allSnakeHeads = findAllSneks(gameData)['allSnekHeads'];
+
   console.log('MOVE: ' + thisMove)
   console.log('GAME DATA: ',gameData);
 
   response.status(200).send({
     move: thisMove
   })
+}
+
+function findAllSneks(gameData) {
+  const allSnekCoords = [];
+  const allSnekBodies = [];
+  const allSnekHeads = [];
+  const sneks = gameData.board.snakes
+  
+  sneks.forEach((snek) => {
+    allSnekCoords.push(...snek.body, snek.head);
+    allSnekBodies.push(...snek.body);
+    allSnekHeads.push(snek.head);
+  });
+
+  return { allSnekCoords, allSnekBodies, allSnekHeads };
 }
 
 function handleEnd(request, response) {
@@ -84,10 +103,13 @@ function randomMove(movesArr = possibleMoves) {
 function tryMove({ moveDir, gameData }) {
   const newHeadPos = updatedHeadCoords({ curHeadCoords: gameData.you.head, moveDir })
 
-  if (hitSnekOrWall({ coords: newHeadPos, gameData })) return false // Do not run into self or wall!
-  if (trapSelf({ newHeadPos, moveDir, gameData })) return false // Do not end up trapping self!
+  if (snekHeadInCoord({ coords: newHeadPos })) return true; // If we're about to hit a snake's head, go for it!
 
-  // No collisions! We can move this direction!
+  if (hitSnekBodyOrWall({ coords: newHeadPos, gameData })) return false // Do not run into self or wall!
+  if (trapSelf({ newHeadPos, moveDir, gameData })) return false // Do not end up trapping self!
+  if (movingTowardsSnek({ coords: newHeadPos, gameData })) return false // Avoid going towards snakes! Including yourself!
+
+  // No collisions or danger moves! We can move this direction!
   return true
 }
 
@@ -101,22 +123,29 @@ function coordsInSet({ coords, set }) {
 
 function bodyOrWallInCoord({ coords, gameData }) {
   // const bodyCoords = gameData.you.body
-  const sneks = gameData.board.snakes
-  const allBodyCoords = []
-  
-  sneks.forEach((snek) => allBodyCoords.push(...snek.body))
-
-  console.log('bodyCoords: ', allBodyCoords)
-
-  if(coordsInSet({ coords, set: allBodyCoords })){
-    return true
-  }
+  if (snekBodyInCoord({ coords, gameData })) return true;
 
   if(hitWall({ coords, gameData })) {
     return true
   }
 
   return false
+}
+
+function snekBodyInCoord({ coords }) {
+  console.log('bodyCoords: ', allSnekBodies)
+
+  if(coordsInSet({ coords, set: allSnekBodies })){
+    return true
+  }
+}
+
+function snekHeadInCoord({ coords }) {
+  console.log('headCoords: ', allSnekHeads)
+
+  if(coordsInSet({ coords, set: allSnekHeads })){
+    return true
+  }
 }
 
 function surroundedBySelfOrWall({ newHeadPos, gameData }) {
@@ -145,67 +174,67 @@ function headingTowardsWallTrap({ moveDir, gameData }) {
   return false
 }
 
-function range(size, startAt = 0) {
-  return [...Array(size).keys()].map(i => i + startAt);
-}
+// function range(size, startAt = 0) {
+//   return [...Array(size).keys()].map(i => i + startAt);
+// }
 
-function buildLineOfSightCoords({ headPos, gameData }) {
-  const coords = {}
+// function buildLineOfSightCoords({ headPos, gameData }) {
+//   const coords = {}
 
-  possibleMoves.forEach(dir => {
-    const coordsDir = []
+//   possibleMoves.forEach(dir => {
+//     const coordsDir = []
 
-    const axis = ['up', 'down'].includes(dir) ? 'y' : 'x'
-    const boardDim = ['up', 'down'].includes(dir) ? 'height' : 'width'
-    const incrementer = ['up', 'right'].includes(dir) ? 'pos' : 'neg'
+//     const axis = ['up', 'down'].includes(dir) ? 'y' : 'x'
+//     const boardDim = ['up', 'down'].includes(dir) ? 'height' : 'width'
+//     const incrementer = ['up', 'right'].includes(dir) ? 'pos' : 'neg'
 
-    if (incrementer === 'pos') {
-      range(gameData.board[boardDim], headPos[axis]).forEach(num => {
-        const coords = { x: headPos.x, y: headPos.y }
+//     if (incrementer === 'pos') {
+//       range(gameData.board[boardDim], headPos[axis]).forEach(num => {
+//         const coords = { x: headPos.x, y: headPos.y }
 
-        coords[axis] = num
+//         coords[axis] = num
 
-        coordsDir.push(coords)
-      })
-    }
+//         coordsDir.push(coords)
+//       })
+//     }
 
-    coords[dir] = coordsDir
-  })
+//     coords[dir] = coordsDir
+//   })
 
-  return coords
-}
+//   return coords
+// }
 
-function bodyInLinearSightByDirection({ dir, gameData }) {
-  const { lineOfSightCoords } = gameData
+// function bodyInLinearSightByDirection({ dir, gameData }) {
+//   const { lineOfSightCoords } = gameData
       
-  lineOfSightCoords[dir].forEach(coords => {
-    if (coordsInSet({ coords, set: gameData.you.body })) return true
-  })
+//   lineOfSightCoords[dir].forEach(coords => {
+//     if (coordsInSet({ coords, set: gameData.you.body })) return true
+//   })
 
-  return false
-}
+//   return false
+// }
 
-function headingTowardsSelfTrap({ moveDir, newHeadPos, gameData }) {
-  const allWaysClear = true
-  let bodyPartInLineOfSight = 0
+// function headingTowardsSelfTrap({ moveDir, newHeadPos, gameData }) {
+//   const allWaysClear = true
+//   let bodyPartInLineOfSight = 0
 
-  gameData.lineOfSightCoords = buildLineOfSightCoords({ headPos: newHeadPos, gameData })
+//   gameData.lineOfSightCoords = buildLineOfSightCoords({ headPos: newHeadPos, gameData })
 
-  console.log("LINE OF SIGHT?", gameData.lineOfSightCoords)
+//   console.log("LINE OF SIGHT?", gameData.lineOfSightCoords)
 
-  possibleMoves.forEach(dir => {
-    if (bodyInLinearSightByDirection({ dir: moveDir, gameData })) {
-      allWaysClear = false
-    } else {
-      bodyPartInLineOfSight++
-    }
-  })
+//   possibleMoves.forEach(dir => {
+//     if (bodyInLinearSightByDirection({ dir: moveDir, gameData })) {
+//       allWaysClear = false
+//     } else {
+//       bodyPartInLineOfSight++
+//     }
+//   })
 
-  if (allWaysClear) return false
-  if (bodyPartInLineOfSight < 3) return false
+//   if (allWaysClear) return false
+//   if (bodyPartInLineOfSight < 3) return false
 
-  return true
-}
+//   return true
+// }
 
 function headNextToWall(gameData) {
   return bodyCoordNextToWall({ coords: gameData.you.head, gameData })
@@ -222,15 +251,15 @@ function bodyCoordNextToWall({ coords, gameData }) {
     return 'up'
   } 
 
-  if (hitWall({ coords: { x: coords.x, y: coords.y - 1 }, gameData })) { // check up
+  if (hitWall({ coords: { x: coords.x, y: coords.y - 1 }, gameData })) { // check down
     return 'down'
   } 
 
-  if (hitWall({ coords: { x: coords.x - 1, y: coords.y }, gameData })) { // check up
+  if (hitWall({ coords: { x: coords.x - 1, y: coords.y }, gameData })) { // check left
     return 'left'
   } 
 
-  if (hitWall({ coords: { x: coords.x + 1, y: coords.y }, gameData })) { // check up
+  if (hitWall({ coords: { x: coords.x + 1, y: coords.y }, gameData })) { // check right
     return 'right'
   } 
 
@@ -259,7 +288,39 @@ function trapSelf({ newHeadPos, moveDir, gameData }) {
   return false
 }
 
-function hitSnekOrWall({ coords, gameData }) {
+function movingTowardsSnek({ coords, gameData }) {
+  const currentCoords = gameData.you.head;
+
+  allBodyCoords.forEach((snekPart) => {
+    if (movingTowardsCoords({ currentCoords, moveCoords: coords, checkCoords: snekPart })) return true;
+  });
+
+  return false;
+}
+
+function movingTowardsCoords({ currentCoords, moveCoords, checkCoords }) {
+  const commonCoord = xOrYInCommon({ coordsA: moveCoords, coordsB: checkCoords });
+  if (!commonCoord) return false;
+
+  const CNIC = commonCoord[1];
+  const ogDistance = checkCoords[CNIC] - currentCoords[CNIC];
+  const newDistance = checkCoords[CNIC] - moveCoords[CNIC];
+
+  if (newDistance > ogDistance) return false;
+
+  return {
+    distance: newDistance,
+  };
+}
+
+function xOrYInCommon({ coordsA, coordsB }) {
+  if (coordsA.x === coordsB.x) return ['x', 'y'];
+  if (coordsA.y === coordsB.y) return ['y', 'x'];
+
+  return false;
+}
+
+function hitSnekBodyOrWall({ coords, gameData }) {
   if (bodyOrWallInCoord({ coords, gameData })) {
     console.log('** GONNA HIT YERSELF (OR ANOTHER SNEK), HUN! **\n')
     return true
