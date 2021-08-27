@@ -14,7 +14,6 @@ app.post('/end', handleEnd)
 app.listen(PORT, () => console.log(`Battlesnake Server listening at http://127.0.0.1:${PORT}`))
 
 const possibleMoves = ['up', 'down', 'left', 'right']
-let allBodyCoords, allSnekBodies, allSnekHeads;
 
 function handleIndex(request, response) {
   var battlesnakeInfo = {
@@ -29,9 +28,9 @@ function handleIndex(request, response) {
 
 function handleStart(request, response) {
   var gameData = request.body
-  allBodyCoords = [];
-  allSnekBodies = [];
-  allSnekHeads = [];
+  gameData.allBodyCoords = [];
+  gameData.allSnekBodies = [];
+  gameData.allSnekHeads = [];
 
   console.log('START')
   response.status(200).send('ok')
@@ -40,10 +39,9 @@ function handleStart(request, response) {
 function handleMove(request, response) {
   var gameData = request.body
 
-  const thisMove = move(gameData)
-  allBodyCoords = findAllSneks(gameData)['allSnekBodyCoords'];
-  allSnekBodies = findAllSneks(gameData)['allSnekBodies'];
-  allSnekHeads = findAllSneks(gameData)['allSnekHeads'];
+  const thisMove = move(gameData);
+
+  findAllSneks(gameData);
 
   console.log('MOVE: ' + thisMove)
   console.log('GAME DATA: ',gameData);
@@ -54,18 +52,13 @@ function handleMove(request, response) {
 }
 
 function findAllSneks(gameData) {
-  const allSnekCoords = [];
-  const allSnekBodies = [];
-  const allSnekHeads = [];
   const sneks = gameData.board.snakes
   
   sneks.forEach((snek) => {
-    allSnekCoords.push(...snek.body, snek.head);
-    allSnekBodies.push(...snek.body);
-    allSnekHeads.push(snek.head);
+    gameData.allBodyCoords.push(...snek.body, snek.head);
+    gameData.allSnekBodies.push(...snek.body);
+    gameData.allSnekHeads.push(snek.head);
   });
-
-  return { allSnekCoords, allSnekBodies, allSnekHeads };
 }
 
 function handleEnd(request, response) {
@@ -136,17 +129,17 @@ function bodyOrWallInCoord({ coords, gameData }) {
 }
 
 function snekBodyInCoord({ coords }) {
-  console.log('bodyCoords: ', allSnekBodies)
+  console.log('bodyCoords: ', gameData.allSnekBodies)
 
-  if(coordsInSet({ coords, set: allSnekBodies })){
+  if(coordsInSet({ coords, set: gameData.allSnekBodies })){
     return true
   }
 }
 
 function snekHeadInCoord({ coords }) {
-  console.log('headCoords: ', allSnekHeads)
+  console.log('headCoords: ', gameData.allSnekHeads)
 
-  if(coordsInSet({ coords, set: allSnekHeads })){
+  if(coordsInSet({ coords, set: gameData.allSnekHeads })){
     return true
   }
 }
@@ -294,7 +287,7 @@ function trapSelf({ newHeadPos, moveDir, gameData }) {
 function movingTowardsSnek({ coords, gameData }) {
   const currentCoords = gameData.you.head;
 
-  allBodyCoords.forEach((snekPart) => {
+  gameData.allBodyCoords.forEach((snekPart) => {
     if (movingTowardsCoords({ currentCoords, moveCoords: coords, checkCoords: snekPart })) return true;
   });
 
