@@ -30,6 +30,8 @@ function handleIndex(request, response) {
 function handleStart(request, response) {
   var gameData = request.body
   allBodyCoords = [];
+  allSnekBodies = [];
+  allSnekHeads = [];
 
   console.log('START')
   response.status(200).send('ok')
@@ -40,7 +42,8 @@ function handleMove(request, response) {
 
   const thisMove = move(gameData)
   allBodyCoords = findAllSneks(gameData)['allSnekBodyCoords'];
-  allSnakeHeads = findAllSneks(gameData)['allSnekHeads'];
+  allSnekBodies = findAllSneks(gameData)['allSnekBodies'];
+  allSnekHeads = findAllSneks(gameData)['allSnekHeads'];
 
   console.log('MOVE: ' + thisMove)
   console.log('GAME DATA: ',gameData);
