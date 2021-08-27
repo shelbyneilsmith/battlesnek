@@ -68,7 +68,7 @@ function move(gameData) {
 
     console.log('\n\n** OK, lets try a move! **')
     console.log('MOVE WE ARE ABOUT TO TRY', moveDir)
-    console.log('MOVE LEFT AFTER THIS ONE', movesArr)
+    console.log('MOVES LEFT AFTER THIS ONE', movesArr)
     
     if (tryMove({ moveDir, gameData })) {
       movesArr.length = 0 // empty out temp moves list so we don't keep looping
@@ -250,18 +250,18 @@ function trapSelf({ newHeadPos, moveDir, gameData }) {
     return true
   }
 
-  // about to head toward a trap within itself
-  if (headingTowardsSelfTrap({ moveDir, newHeadPos, gameData })) {
-    console.log('** GONNA TRAP YERSELF, HUN! **\n')
-    return true
-  }
+  // // about to head toward a trap within itself
+  // if (headingTowardsSelfTrap({ moveDir, newHeadPos, gameData })) {
+  //   console.log('** GONNA TRAP YERSELF, HUN! **\n')
+  //   return true
+  // }
 
   return false
 }
 
 function hitSnekOrWall({ coords, gameData }) {
   if (bodyOrWallInCoord({ coords, gameData })) {
-    console.log('** GONNA HIT YERSELF, HUN! **\n')
+    console.log('** GONNA HIT YERSELF (OR ANOTHER SNEK), HUN! **\n')
     return true
   }
 
