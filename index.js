@@ -28,20 +28,23 @@ function handleIndex(request, response) {
 
 function handleStart(request, response) {
   var gameData = request.body
-  gameData.allBodyCoords = [];
-  gameData.allSnekBodies = [];
-  gameData.allSnekHeads = [];
 
   console.log('START')
+  console.log('INITIAL GAME DATA: ', gameData);
+
   response.status(200).send('ok')
 }
 
 function handleMove(request, response) {
   var gameData = request.body
 
-  const thisMove = move(gameData);
+  gameData.allBodyCoords = [];
+  gameData.allSnekBodies = [];
+  gameData.allSnekHeads = [];
 
   findAllSneks(gameData);
+
+  const thisMove = move(gameData);
 
   console.log('MOVE: ' + thisMove)
   console.log('GAME DATA: ',gameData);
@@ -99,7 +102,7 @@ function randomMove(movesArr = possibleMoves) {
 function tryMove({ moveDir, gameData }) {
   const newHeadPos = updatedHeadCoords({ curHeadCoords: gameData.you.head, moveDir })
 
-  if (snekHeadInCoord({ coords: newHeadPos })) return true; // If we're about to hit a snake's head, go for it!
+  if (snekHeadInCoord({ coords: newHeadPos, gameData })) return true; // If we're about to hit a snake's head, go for it!
 
   if (hitSnekBodyOrWall({ coords: newHeadPos, gameData })) return false // Do not run into self or wall!
   if (trapSelf({ newHeadPos, moveDir, gameData })) return false // Do not end up trapping self!
@@ -128,7 +131,7 @@ function bodyOrWallInCoord({ coords, gameData }) {
   return false
 }
 
-function snekBodyInCoord({ coords }) {
+function snekBodyInCoord({ coords, gameData }) {
   console.log('bodyCoords: ', gameData.allSnekBodies)
 
   if(coordsInSet({ coords, set: gameData.allSnekBodies })){
@@ -136,7 +139,7 @@ function snekBodyInCoord({ coords }) {
   }
 }
 
-function snekHeadInCoord({ coords }) {
+function snekHeadInCoord({ coords, gameData }) {
   console.log('headCoords: ', gameData.allSnekHeads)
 
   if(coordsInSet({ coords, set: gameData.allSnekHeads })){
